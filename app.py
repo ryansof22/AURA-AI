@@ -71,7 +71,7 @@ if prompt := st.chat_input("Ketik pesan untuk AURA..."):
     waktu_skrg = get_now()
     prompt_system = f"""
     Kamu adalah AURA, Personal AI milik Ryan.
-    Waktu: {wkr_skrg.strftime('%A, %d %B %Y %H:%M')} WIB.
+    Waktu: {waktu_skrg.strftime('%A, %d %B %Y %H:%M')} WIB.
 
     INFO PERMANEN RYAN: {konteks_personal}
     KONTEKS TERAKHIR: {konteks_chat}
