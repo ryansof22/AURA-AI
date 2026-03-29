@@ -7,7 +7,7 @@ import pytz
 import time
 
 # --- 1. KONFIGURASI HALAMAN & STYLE (WhatsApp Dark Mode) ---
-st.set_page_config(page_title="AURA AI", layout="centered")
+st.set_page_config(page_title="AURA AI", page_icon="✨", layout="centered")
 
 st.markdown("""
     <style>
@@ -56,7 +56,7 @@ def init_aura():
         sh = gc.open_by_key(st.secrets["spreadsheet_id"])
         
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         return sh, model
     except Exception as e:
         st.error(f"Error Koneksi: {e}")
@@ -92,7 +92,7 @@ if "messages" not in st.session_state:
 # Header Tetap (Foto Profil & Nama)
 col1, col2 = st.columns([1, 6])
 with col1:
-    st.image("profile_aura.jpg", width=70) # Pastikan file ini ada di GitHub
+    st.image("profile_aura.jpeg", width=70) # Pastikan file ini ada di GitHub
 with col2:
     st.subheader("AURA")
     st.caption("Online | Inisiatif AI Strategic Assistant")
