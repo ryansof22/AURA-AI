@@ -9,7 +9,7 @@ AURA is an initiative AI designed to be a high-level personal assistant, focusin
 - **Proactive Initiative**: Greets and reminds the user based on specific schedules and habits.
 
 ## 🛠️ Tech Stack
-- **Core AI**: Gemini 1.5 Flash API
+- **Core AI**: Gemini 2.5 Flash API
 - **Web Framework**: Streamlit
 - **Database**: Google Sheets API (via Gspread)
 - **Language**: Python 3.x
