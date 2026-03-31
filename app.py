@@ -37,11 +37,6 @@ st.markdown("""
     .header-name { font-weight: bold; font-size: 16px; color: #e9edef; }
     .header-status { font-size: 12px; color: #00a884; }
 
-    /* Sembunyikan elemen dekorasi Streamlit yang mengganggu header */
-    header[data-testid="stHeader"] {
-        background-color: rgba(0,0,0,0) !important;
-        color: white !important;
-
     /* Container Chat */
     .chat-container { margin-top: 80px; margin-bottom: 100px; }
     
@@ -82,9 +77,6 @@ st.markdown("""
     footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
-
-# Gunakan link RAW GitHub agar gambar ter-load sempurna
-URL_FOTO = "https://raw.githubusercontent.com/ryansof22/AURA-AI/main/profile_aura.jpeg"
 
 # --- 2. KONEKSI & SETUP ---
 def init_aura():
@@ -152,7 +144,7 @@ def manage_memory(sheet):
 # --- 4. TAMPILAN HEADER (FIXED) ---
 st.markdown(f'''
     <div class="fixed-header">
-        <img src="{URL_FOTO}" class="header-img">
+        <img src="https://raw.githubusercontent.com/RyanSofiyulloh/AURA-AI/main/profile_aura.jpeg" class="header-img">
         <div class="header-info">
             <div class="header-name">AURA</div>
             <div class="header-status">Online</div>
@@ -173,7 +165,7 @@ for m in st.session_state.messages:
     else:
         st.markdown(f'''
             <div class="chat-row aura-row">
-                <img src="{URL_FOTO}" class="chat-avatar-aura">
+                <img src="https://raw.githubusercontent.com/RyanSofiyulloh/AURA-AI/main/profile_aura.jpeg" class="chat-avatar-aura">
                 <div class="aura-bubble">{m["content"]}</div>
             </div>
         ''', unsafe_allow_html=True)
