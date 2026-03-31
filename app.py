@@ -147,11 +147,20 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         # Animasi Ketik Sederhana
         time.sleep(1)
         
-        # Simpan & Update UI
-        st.session_state.messages.append({"role": "assistant", "content": jawaban, "emoji": emoji_aura})
+        # --- LOGIKA PENYIMPANAN CERDAS (AUTO-CLEANUP) ---
+        # 1. Tambahkan baris baru (User & AURA)
         sheet_harian.append_row([waktu_skrg.strftime("%H:%M:%S"), "User", user_input])
         sheet_harian.append_row([waktu_skrg.strftime("%H:%M:%S"), "AURA", jawaban])
-        st.rerun()
+        
+        # 2. Cek jumlah baris saat ini
+        all_rows = sheet_harian.get_all_values()
+        total_baris = len(all_rows)
+        
+        # 3. Jika lebih dari 100 baris, hapus baris paling lama (baris ke-2, karena baris 1 adalah Header)
+        # Kita hapus 2 baris sekaligus (1 pasang chat) agar efisien
+        if total_baris > 100:
+            # Menghapus baris ke-2 dan ke-3 (data tertua setelah header)
+            sheet_harian.delete_rows(2, 3)
 
 # --- 5. SIDEBAR ---
 with st.sidebar:
