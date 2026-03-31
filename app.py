@@ -67,7 +67,7 @@ def get_now():
 
 sh, model = init_aura()
 
-# --- 3. FUNGSI EMOSI & INISIATIF ---
+# --- 3. FUNGSI EMOSI, INISIATIF & MEMORY MANAGEMENT ---
 def get_aura_emoji(text):
     text = text.lower()
     if any(word in text for word in ["maaf", "sedih", "sayang sekali"]): return "😔"
@@ -82,6 +82,20 @@ def aura_initial_greet():
     elif 19 <= jam < 22: return "Sudah jam belajar Jepang-mu nih, Ryan. Ada kanji baru yang mau kita bahas? 🇯🇵"
     return "Halo Ryan! Ada proyek menarik apa yang ingin kita diskusikan sekarang? ✨"
 
+def manage_memory(sheet):
+    """Menjaga baris Spreadsheet agar tidak overload (Batas 100 baris)"""
+    try:
+        all_rows = sheet.get_all_values()
+        total_baris = len(all_rows)
+        
+        if total_baris > 100:
+            # Menghapus baris tertua (baris 2 ke bawah) agar tersisa 80 baris saja untuk ruang baru
+            # Ini lebih efisien daripada menghapus satu per satu
+            jumlah_hapus = total_baris - 80
+            sheet.delete_rows(2, jumlah_hapus + 1)
+    except Exception as e:
+        print(f"Gagal membersihkan memori: {e}")
+
 # --- 4. LOGIKA PERCAKAPAN ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -89,15 +103,15 @@ if "messages" not in st.session_state:
     greet = aura_initial_greet()
     st.session_state.messages.append({"role": "assistant", "content": greet, "emoji": "😊"})
 
-# Header Tetap (Foto Profil & Nama)
+# Header Tetap
 col1, col2 = st.columns([1, 6])
 with col1:
-    st.image("profile_aura.jpeg", width=70) # Pastikan file ini ada di GitHub
+    st.image("profile_aura.jpeg", width=70) # Pastikan file ini ada di GitHub kamu
 with col2:
     st.subheader("AURA")
     st.caption("Online | Inisiatif AI Strategic Assistant")
 
-# Tampilkan Riwayat Chat dengan Style WA
+# Tampilkan Riwayat Chat
 for m in st.session_state.messages:
     if m["role"] == "user":
         st.markdown(f'''<div class="chat-row user-row"><div class="user-bubble">{m["content"]}</div><div class="avatar">👤</div></div>''', unsafe_allow_html=True)
@@ -106,16 +120,14 @@ for m in st.session_state.messages:
 
 # Input Chat
 if prompt := st.chat_input("Ketik pesan..."):
-    # Tampilkan Pesan User
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
 
-# Proses Respon (Jika pesan terakhir dari User)
+# Proses Respon
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     user_input = st.session_state.messages[-1]["content"]
     
     with st.spinner("AURA sedang berpikir..."):
-        # Ambil Memori (Sheet)
         sheet_harian = sh.worksheet("Chat_Harian")
         sheet_info = sh.worksheet("Personal_Information")
         
@@ -123,7 +135,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         konteks_personal = "\n".join([f"- {r[0]}" for r in info_data[1:]])
         
         chat_data = sheet_harian.get_all_values()
-        konteks_chat = chat_data[-50:] # Ambil 50 baris terakhir
+        konteks_chat = chat_data[-50:] # Mengambil konteks 50 baris terakhir agar tetap ringan
 
         waktu_skrg = get_now()
         prompt_system = f"""
@@ -140,27 +152,26 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         4. Jika Bahasa Jepang: sertakan Romaji & arti.
         """
         
-        response = model.generate_content([prompt_system, user_input])
-        jawaban = response.text
-        emoji_aura = get_aura_emoji(jawaban)
+        try:
+            response = model.generate_content([prompt_system, user_input])
+            jawaban = response.text
+            emoji_aura = get_aura_emoji(jawaban)
 
-        # Animasi Ketik Sederhana
-        time.sleep(1)
-        
-        # --- LOGIKA PENYIMPANAN CERDAS (AUTO-CLEANUP) ---
-        # 1. Tambahkan baris baru (User & AURA)
-        sheet_harian.append_row([waktu_skrg.strftime("%H:%M:%S"), "User", user_input])
-        sheet_harian.append_row([waktu_skrg.strftime("%H:%M:%S"), "AURA", jawaban])
-        
-        # 2. Cek jumlah baris saat ini
-        all_rows = sheet_harian.get_all_values()
-        total_baris = len(all_rows)
-        
-        # 3. Jika lebih dari 100 baris, hapus baris paling lama (baris ke-2, karena baris 1 adalah Header)
-        # Kita hapus 2 baris sekaligus (1 pasang chat) agar efisien
-        if total_baris > 100:
-            # Menghapus baris ke-2 dan ke-3 (data tertua setelah header)
-            sheet_harian.delete_rows(2, 3)
+            time.sleep(1)
+            
+            # Simpan & Update UI
+            st.session_state.messages.append({"role": "assistant", "content": jawaban, "emoji": emoji_aura})
+            
+            # Simpan ke Spreadsheet
+            sheet_harian.append_row([waktu_skrg.strftime("%H:%M:%S"), "User", user_input])
+            sheet_harian.append_row([waktu_skrg.strftime("%H:%M:%S"), "AURA", jawaban])
+            
+            # Jalankan Management Memory Otomatis
+            manage_memory(sheet_harian)
+            
+            st.rerun()
+        except Exception as e:
+            st.error(f"Maaf Ryan, terjadi kendala teknis: {e}")
 
 # --- 5. SIDEBAR ---
 with st.sidebar:
