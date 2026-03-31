@@ -144,7 +144,7 @@ def manage_memory(sheet):
 # --- 4. TAMPILAN HEADER (FIXED) ---
 st.markdown(f'''
     <div class="fixed-header">
-        <img src="https://raw.githubusercontent.com/RyanSofiyulloh/AURA-AI/main/profile_aura.jpeg" class="header-img">
+        <img src="https://github.com/ryansof22/AURA-AI/blob/main/profile_aura.jpeg" class="header-img">
         <div class="header-info">
             <div class="header-name">AURA</div>
             <div class="header-status">Online</div>
