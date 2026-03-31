@@ -9,54 +9,80 @@ import time
 # --- 1. KONFIGURASI HALAMAN & STYLE (UI WHATSAPP PRO) ---
 st.set_page_config(page_title="AURA AI", page_icon="✨", layout="centered")
 
-# --- STYLE UPDATE ---
 st.markdown("""
     <style>
     .stApp { background-color: #0b141a; color: #e9edef; }
     
-    /* Header Statis yang Menyesuaikan dengan Sidebar */
+    /* Header Statis (Sticky) */
     .fixed-header {
         position: fixed;
         top: 0;
-        right: 0;
         left: 0;
-        /* Menyesuaikan z-index agar di bawah sidebar tapi di atas chat */
-        z-index: 99; 
+        width: 100%;
         background-color: #202c33;
-        padding: 10px 15px;
+        padding: 10px 20px;
         display: flex;
         align-items: center;
+        z-index: 1000;
         border-bottom: 1px solid #313d45;
-        height: 65px;
     }
-
-    /* Memastikan konten chat tidak tertutup header */
-    .chat-container { 
-        margin-top: 80px; 
-        margin-bottom: 100px; 
-    }
-
     .header-img {
-        width: 40px;
-        height: 40px;
+        width: 45px;
+        height: 45px;
         border-radius: 50%;
         object-fit: cover;
-        margin-right: 12px;
-        border: 1px solid #313d45;
+        margin-right: 15px;
     }
-
+    .header-info { line-height: 1.2; }
     .header-name { font-weight: bold; font-size: 16px; color: #e9edef; }
     .header-status { font-size: 12px; color: #00a884; }
-    
+
     /* Sembunyikan elemen dekorasi Streamlit yang mengganggu header */
     header[data-testid="stHeader"] {
         background-color: rgba(0,0,0,0) !important;
         color: white !important;
+
+    /* Container Chat */
+    .chat-container { margin-top: 80px; margin-bottom: 100px; }
+    
+    .chat-row { display: flex; margin: 15px 0; align-items: flex-end; }
+    .user-row { justify-content: flex-end; }
+    .aura-row { justify-content: flex-start; }
+    
+    /* Avatar Bundar AURA */
+    .chat-avatar-aura {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        margin-right: 10px;
+        object-fit: cover;
     }
+
+    .user-bubble {
+        background-color: #005c4b;
+        color: #e9edef;
+        padding: 12px 16px;
+        border-radius: 15px 15px 0px 15px;
+        max-width: 75%;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+    
+    .aura-bubble {
+        background-color: #202c33;
+        color: #e9edef;
+        padding: 12px 16px;
+        border-radius: 15px 15px 15px 0px;
+        max-width: 75%;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    /* Penyesuaian Layout Streamlit */
+    .block-container { padding-top: 0rem; }
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER TAMPILAN ---
 # Gunakan link RAW GitHub agar gambar ter-load sempurna
 URL_FOTO = "https://raw.githubusercontent.com/ryansof22/AURA-AI/main/profile_aura.jpeg"
 
