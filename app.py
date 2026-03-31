@@ -5,6 +5,7 @@ from google.oauth2.service_account import Credentials
 import datetime
 import pytz
 import time
+import requests
 
 # --- 1. KONFIGURASI HALAMAN & STYLE (WhatsApp Dark Mode) ---
 st.set_page_config(page_title="AURA AI", page_icon="✨", layout="centered")
@@ -56,6 +57,7 @@ def init_aura():
         sh = gc.open_by_key(st.secrets["spreadsheet_id"])
         
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        # Menggunakan model flash terbaru sesuai kode rujukanmu
         model = genai.GenerativeModel('gemini-2.5-flash')
         return sh, model
     except Exception as e:
@@ -65,13 +67,24 @@ def init_aura():
 def get_now():
     return datetime.datetime.now(pytz.timezone('Asia/Jakarta'))
 
+# Fungsi Notifikasi Telegram (Eksternal)
+def send_telegram_notification(message):
+    try:
+        token = st.secrets["TELEGRAM_BOT_TOKEN"]
+        chat_id = st.secrets["TELEGRAM_CHAT_ID"]
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        payload = {"chat_id": chat_id, "text": message}
+        requests.post(url, json=payload)
+    except Exception as e:
+        pass # Notifikasi gagal tidak menghentikan proses utama chat
+
 sh, model = init_aura()
 
-# --- 3. FUNGSI EMOSI, INISIATIF & MEMORY MANAGEMENT ---
+# --- 3. FUNGSI LOGIKA PERILAKU AURA ---
 def get_aura_emoji(text):
     text = text.lower()
     if any(word in text for word in ["maaf", "sedih", "sayang sekali"]): return "😔"
-    if any(word in text for word in ["pikir", "analisis", "riset", "strategi"]): return "🤔"
+    if any(word in text for word in ["pikir", "analisis", "riset", "strategi", "detail"]): return "🤔"
     if any(word in text for word in ["hebat", "semangat", "bagus", "siap"]): return "🔥"
     if any(word in text for word in ["halo", "hai", "pagi", "siang", "malam"]): return "😊"
     return "✨"
@@ -80,33 +93,29 @@ def aura_initial_greet():
     jam = get_now().hour
     if 5 <= jam < 11: return "Selamat pagi, Ryan! Sudah siap cek Coursera atau lanjut SQL hari ini? ☕"
     elif 19 <= jam < 22: return "Sudah jam belajar Jepang-mu nih, Ryan. Ada kanji baru yang mau kita bahas? 🇯🇵"
-    return "Halo Ryan! Ada proyek menarik apa yang ingin kita diskusikan sekarang? ✨"
+    return "Halo Ryan! ✨"
 
 def manage_memory(sheet):
     """Menjaga baris Spreadsheet agar tidak overload (Batas 100 baris)"""
     try:
         all_rows = sheet.get_all_values()
         total_baris = len(all_rows)
-        
         if total_baris > 100:
-            # Menghapus baris tertua (baris 2 ke bawah) agar tersisa 80 baris saja untuk ruang baru
-            # Ini lebih efisien daripada menghapus satu per satu
             jumlah_hapus = total_baris - 80
             sheet.delete_rows(2, jumlah_hapus + 1)
     except Exception as e:
-        print(f"Gagal membersihkan memori: {e}")
+        pass
 
 # --- 4. LOGIKA PERCAKAPAN ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    # Jalankan Inisiatif AI pertama kali
     greet = aura_initial_greet()
     st.session_state.messages.append({"role": "assistant", "content": greet, "emoji": "😊"})
 
 # Header Tetap
 col1, col2 = st.columns([1, 6])
 with col1:
-    st.image("profile_aura.jpeg", width=70) # Pastikan file ini ada di GitHub kamu
+    st.image("profile_aura.jpeg", width=70) 
 with col2:
     st.subheader("AURA")
     st.caption("Online | Inisiatif AI Strategic Assistant")
@@ -119,7 +128,7 @@ for m in st.session_state.messages:
         st.markdown(f'''<div class="chat-row aura-row"><div class="avatar">{m.get("emoji", "✨")}</div><div class="aura-bubble">{m["content"]}</div></div>''', unsafe_allow_html=True)
 
 # Input Chat
-if prompt := st.chat_input("Ketik pesan..."):
+if prompt := st.chat_input("Ketik pesan... (Gunakan tag '(Detail)' untuk jawaban lengkap)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
 
@@ -134,41 +143,52 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         info_data = sheet_info.get_all_values()
         konteks_personal = "\n".join([f"- {r[0]}" for r in info_data[1:]])
         
+        # PERBAIKAN: Membaca memori dengan pembersih karakter \n mentah
         chat_data = sheet_harian.get_all_values()
-        konteks_chat = chat_data[-50:] # Mengambil konteks 50 baris terakhir agar tetap ringan
+        konteks_chat = []
+        for row in chat_data[-50:]:
+            # Membersihkan string mentah agar kembali menjadi enter nyata 
+            cleaned_row = [str(cell).replace('\\n', '\n') for cell in row]
+            konteks_chat.append(cleaned_row)
 
         waktu_skrg = get_now()
+        
+        # PROMPT SYSTEM DENGAN LOGIKA LABELING (DETAIL)
         prompt_system = f"""
         Kamu adalah AURA, Personal AI Strategis milik Ryan.
         Waktu: {waktu_skrg.strftime('%A, %d %B %Y %H:%M')} WIB.
         
         PANDUAN RYAN: {konteks_personal}
-        KONTEKS CHAT: {konteks_chat}
+        KONTEKS CHAT (Ingatan): {konteks_chat}
 
-        Tugas:
-        1. Respon natural (Gunakan 'Aku/Kamu'), tidak kaku.
-        2. Jika tanya tren/riset: gunakan perspektif 'Think with Google'.
-        3. Jika tanya ide: buat format Mind Map poin-poin.
-        4. Jika Bahasa Jepang: sertakan Romaji & arti.
+        ATURAN RESPONS:
+        1. Jika Ryan menggunakan tag '(Detail)', berikan penjelasan yang sangat mendalam, teknis, dan komprehensif.
+        2. Jika Ryan bertanya biasa (Tanpa Tag), jawablah dengan SINGKAT (1-2 kalimat), santai, dan to-the-point seperti chat WhatsApp.
+        3. Jika bertanya jadwal, segera cek PANDUAN RYAN di atas.
+        4. Respon natural (Gunakan 'Aku/Kamu'), cerdas, dan jangan bertele-tele jika tidak diminta detail.
         """
         
         try:
             response = model.generate_content([prompt_system, user_input])
-            jawaban = response.text
+            # PERBAIKAN: Membersihkan output Gemini dari karakter \n literal
+            jawaban = response.text.replace('\\n', '\n')
             emoji_aura = get_aura_emoji(jawaban)
 
             time.sleep(1)
             
-            # Simpan & Update UI
+            # TRIGGER NOTIFIKASI TELEGRAM
+            # Kirim notif otomatis jika membahas jadwal atau hal penting lainnya
+            if any(key in user_input.lower() for key in ["jadwal", "penting", "ingat"]):
+                send_telegram_notification(f"🔔 NOTIFIKASI AURA:\n{jawaban}")
+
+            # Update UI
             st.session_state.messages.append({"role": "assistant", "content": jawaban, "emoji": emoji_aura})
             
             # Simpan ke Spreadsheet
             sheet_harian.append_row([waktu_skrg.strftime("%H:%M:%S"), "User", user_input])
             sheet_harian.append_row([waktu_skrg.strftime("%H:%M:%S"), "AURA", jawaban])
             
-            # Jalankan Management Memory Otomatis
             manage_memory(sheet_harian)
-            
             st.rerun()
         except Exception as e:
             st.error(f"Maaf Ryan, terjadi kendala teknis: {e}")
