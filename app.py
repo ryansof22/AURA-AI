@@ -144,7 +144,7 @@ def manage_memory(sheet):
 # --- 4. TAMPILAN HEADER (FIXED) ---
 st.markdown(f'''
     <div class="fixed-header">
-        <img src="https://github.com/ryansof22/AURA-AI/blob/main/profile_aura.jpeg" class="header-img">
+        <img src="profile_aura.jpeg" class="header-img">
         <div class="header-info">
             <div class="header-name">AURA</div>
             <div class="header-status">Online</div>
@@ -165,7 +165,7 @@ for m in st.session_state.messages:
     else:
         st.markdown(f'''
             <div class="chat-row aura-row">
-                <img src="https://raw.githubusercontent.com/RyanSofiyulloh/AURA-AI/main/profile_aura.jpeg" class="chat-avatar-aura">
+                <img src="https://github.com/ryansof22/AURA-AI/blob/main/profile_aura.jpeg" class="chat-avatar-aura">
                 <div class="aura-bubble">{m["content"]}</div>
             </div>
         ''', unsafe_allow_html=True)
