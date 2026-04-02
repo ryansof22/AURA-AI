@@ -10,7 +10,7 @@ import time
 st.set_page_config(page_title="AURA AI", page_icon="✨", layout="centered")
 
 # URL Raw Foto Profil dari GitHub Ryan
-URL_FOTO = "https://raw.githubusercontent.com/ryansof22/AURA-AI/main/profile_aura_2.jpeg"
+URL_FOTO = "https://raw.githubusercontent.com/ryansof22/AURA-AI/main/profile_aura_1.jpeg"
 
 st.markdown(f"""
     <style>
