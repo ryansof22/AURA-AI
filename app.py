@@ -49,7 +49,7 @@ def init_aura():
         docs_service = build('docs', 'v1', credentials=creds)
         
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash') # Versi stabil
+        model = genai.GenerativeModel('gemini-2.5-flash') # Versi stabil
         return sh, model, drive_service, docs_service
     except Exception as e:
         st.error(f"Error Koneksi: {e}")
