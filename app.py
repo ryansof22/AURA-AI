@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import gspread
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 import datetime
 import pytz
 import time
@@ -91,21 +92,32 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- 2. KONEKSI & SETUP ---
+# Tambahkan di bagian atas file app.py
 def init_aura():
     try:
+        # Tambahkan Scopes untuk Drive dan Docs
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/documents"
+        ]
         creds = Credentials.from_service_account_info(
             st.secrets["gcp_service_account"], 
-            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+            scopes=scopes
         )
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(st.secrets["spreadsheet_id"])
         
+        # Inisialisasi Service untuk Docs dan Drive
+        drive_service = build('drive', 'v3', credentials=creds)
+        docs_service = build('docs', 'v1', credentials=creds)
+        
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        return sh, model
+        model = genai.GenerativeModel('gemini-2.5-flash') # Gunakan versi terbaru
+        return sh, model, drive_service, docs_service
     except Exception as e:
         st.error(f"Error Koneksi: {e}")
-        return None, None
+        return None, None, None, None
 
 def get_now():
     return datetime.datetime.now(pytz.timezone('Asia/Jakarta'))
@@ -159,6 +171,43 @@ st.markdown(f'''
         </div>
     </div>
 ''', unsafe_allow_html=True)
+
+def run_chal_process(sh, drive_service, docs_service, template_name, replacements):
+    try:
+        # 1. Cari Template di Sheet CHAL_Template
+        sheet_chal = sh.worksheet("CHAL_Template")
+        cell = sheet_chal.find(template_name)
+        if not cell:
+            return "Template tidak ditemukan di database CHAL."
+        
+        row_data = sheet_chal.row_values(cell.row)
+        template_id = row_data[1]  # Kolom B: ID_Template
+        folder_id = row_data[2]    # Kolom C: Folder_Output
+        
+        # 2. Duplikasi Template
+        file_metadata = {
+            'name': f"Hasil_{template_name}_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}", 
+            'parents': [folder_id]
+        }
+        copy_file = drive_service.files().copy(fileId=template_id, body=file_metadata).execute()
+        new_doc_id = copy_file.get('id')
+        
+        # 3. Pengisian Data Otomatis (Replace [KEY] with VALUE)
+        requests = []
+        for key, value in replacements.items():
+            requests.append({
+                'replaceAllText': {
+                    'containsText': {'text': f'[{key}]', 'matchCase': True},
+                    'replaceText': str(value)
+                }
+            })
+        
+        docs_service.documents().batchUpdate(documentId=new_doc_id, body={'requests': requests}).execute()
+        
+        # 4. Generate Link PDF (Export)
+        return f"✅ Berhasil! Dokumen telah dibuat. Silakan download di sini: https://docs.google.com/document/d/{new_doc_id}/export?format=pdf"
+    except Exception as e:
+        return f"Terjadi kesalahan pada CHAL: {e}"
 
 # --- 5. LOGIKA PERCAKAPAN ---
 if "messages" not in st.session_state:
@@ -231,6 +280,21 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
             st.rerun()
         except Exception as e:
             st.error(f"Gagal memproses: {e}")
+
+# Di dalam loop percakapan app.py
+if "(CHAL)" in user_input:
+    # AURA meminta data lewat prompt singkat atau kamu bisa menginputnya langsung
+    # Contoh sederhana: CHAL|Nama_Template|KEY1=VAL1,KEY2=VAL2
+    try:
+        parts = user_input.split("|")
+        t_name = parts[1]
+        raw_data = parts[2].split(",")
+        replacements = {item.split("=")[0]: item.split("=")[1] for item in raw_data}
+        
+        hasil_chal = run_chal_process(sh, drive_service, docs_service, t_name, replacements)
+        st.write(hasil_chal)
+    except:
+        st.warning("Format CHAL salah. Gunakan: (CHAL)|NamaTemplate|KEY=VALUE")
 
 # --- 6. SIDEBAR ---
 with st.sidebar:
